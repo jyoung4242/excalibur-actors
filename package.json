@@ -1,0 +1,26 @@
+{
+  "name": "excalibur-actors",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "vite build",
+    "dev": "vite",
+    "preview": "vite preview"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@peasy-lib/peasy-assets": "^0.2.6",
+    "@peasy-lib/peasy-input": "^0.2.0",
+    "@peasy-lib/peasy-ui": "^0.9.58",
+    "excalibur": "^0.29.0-alpha.857"
+  },
+  "devDependencies": {
+    "json": "^11.0.0",
+    "typescript": "^5.3.3",
+    "vite": "^5.0.11"
+  }
+}
