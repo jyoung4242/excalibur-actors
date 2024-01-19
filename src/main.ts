@@ -1,7 +1,28 @@
 import "./style.css";
 import { UI } from "@peasy-lib/peasy-ui";
-import { Engine, Actor, Vector, DisplayMode, Color, Material, Clock, Scene, SceneActivationContext } from "excalibur";
+import {
+  Engine,
+  Actor,
+  Vector,
+  DisplayMode,
+  Color,
+  Material,
+  Clock,
+  Scene,
+  SceneActivationContext,
+  ImageSource,
+  ImageFiltering,
+} from "excalibur";
 import { starFrag } from "./star";
+import { blackHoleFrag } from "./blackhole";
+import { nebulaFrag } from "./nebula";
+//@ts-ignore
+import noise1 from "./assets/perlin.png";
+//@ts-ignore
+import noise2 from "./assets/fractal.png";
+const imgNoise1 = new ImageSource(noise1);
+const imgNoise2 = new ImageSource(noise2);
+
 const model = {};
 const template = `<div> 
     <canvas id="cnv"></canvas>
@@ -13,9 +34,18 @@ let game = new Engine({ width: 600, height: 400, canvasElementId: "cnv", display
 
 let p1 = new Actor({
   name: "token",
-  width: 50,
-  height: 50,
-  pos: new Vector(25, 25),
+  width: 250,
+  height: 250,
+  pos: new Vector(100, 100),
+  color: Color.Transparent,
+});
+
+let p2 = new Actor({
+  name: "hole",
+  width: 250,
+  height: 250,
+  pos: new Vector(400, 200),
+  color: Color.Transparent,
 });
 
 class myScene extends Scene {
@@ -23,31 +53,30 @@ class myScene extends Scene {
 
   onActivate(context: SceneActivationContext<unknown>): void {
     this.add(p1);
-    //@ts-ignore
-    p1.graphics.material.getShader().use();
-    //@ts-ignore
-    p1.graphics.material.getShader()?.setUniformFloatVector("U_resolution", new Vector(50, 50));
-    //@ts-ignore
-    p1.graphics.material.getShader().use();
-    //@ts-ignore
-    //p1.graphics.material.getShader()?.setUniform("U_color", 0.75, 0.2, 0.2);
-    p1.graphics.material.getShader()?.setUniform("uniform3f", "U_color", 0.75, 0.2, 0.2);
-    //@ts-ignore
-    p1.graphics.material.getShader().use();
-    //@ts-ignore
-    p1.graphics.material.getShader()?.setUniformBoolean("U_highlight", true);
+    this.add(p2);
+
+    p1.graphics.material?.update(shader => {
+      shader.setUniformFloatVector("U_resolution", new Vector(250, 250));
+      shader.setUniform("uniform3f", "U_color", 0.75, 0.2, 0.2);
+      shader.setUniformBoolean("U_highlight", true);
+    });
+
+    p2.graphics.material?.update(shader => {
+      shader.setUniformFloatVector("U_resolution", new Vector(250, 250));
+      shader.setUniformBoolean("U_highlighted", true);
+    });
   }
 
   onDeactivate(context: SceneActivationContext<undefined>): void {}
 
   update(engine: Engine, delta: number): void {
     this._time += delta / 1000;
-    if (p1.graphics.material && p1.graphics.material.getShader()) {
-      //@ts-ignore
-      p1.graphics.material.getShader().use();
-      //@ts-ignore
-      p1.graphics.material.getShader().setUniformFloat("U_time", this._time);
-    }
+    p1.graphics.material?.update(shader => {
+      shader.setUniformFloat("U_time", this._time);
+    });
+    p2.graphics.material?.update(shader => {
+      shader.setUniformFloat("U_time", this._time);
+    });
   }
 }
 
@@ -55,7 +84,19 @@ game.backgroundColor = Color.Black;
 
 //let starMaterial = new Material({ fragmentSource: starFrag });
 let starMaterial = game.graphicsContext.createMaterial({ fragmentSource: starFrag });
+//let bholeMaterial = game.graphicsContext.createMaterial({ fragmentSource: blackHoleFrag });
+
+var bholeMaterial = game.graphicsContext.createMaterial({
+  fragmentSource: blackHoleFrag,
+  images: {
+    U_noise1: imgNoise1,
+    U_noise2: imgNoise2,
+  },
+});
+
 p1.graphics.material = starMaterial;
+p2.graphics.material = bholeMaterial;
+
 let m_scene = new myScene();
 game.add("m_scene", m_scene);
 game.start();

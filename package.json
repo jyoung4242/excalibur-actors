@@ -16,7 +16,7 @@
     "@peasy-lib/peasy-assets": "^0.2.6",
     "@peasy-lib/peasy-input": "^0.2.0",
     "@peasy-lib/peasy-ui": "^0.9.58",
-    "excalibur": "^0.29.0-alpha.857"
+    "excalibur": "^0.29.0-alpha.863"
   },
   "devDependencies": {
     "json": "^11.0.0",
