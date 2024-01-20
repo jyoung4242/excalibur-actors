@@ -12,6 +12,7 @@ import {
   SceneActivationContext,
   ImageSource,
   ImageFiltering,
+  toRadians,
 } from "excalibur";
 import { starFrag } from "./star";
 import { blackHoleFrag } from "./blackhole";
@@ -20,8 +21,12 @@ import { nebulaFrag } from "./nebula";
 import noise1 from "./assets/perlin.png";
 //@ts-ignore
 import noise2 from "./assets/fractal.png";
+//@ts-ignore
+import greynoise from "./assets/blue.png";
+
 const imgNoise1 = new ImageSource(noise1);
 const imgNoise2 = new ImageSource(noise2);
+const imgNoise3 = new ImageSource(greynoise);
 
 const model = {};
 const template = `<div> 
@@ -42,10 +47,19 @@ let p1 = new Actor({
 
 let p2 = new Actor({
   name: "hole",
-  width: 250,
-  height: 250,
-  pos: new Vector(400, 200),
+  width: 100,
+  height: 100,
+  pos: new Vector(525, 200),
   color: Color.Transparent,
+});
+
+let p3 = new Actor({
+  name: "nebula",
+  width: 300,
+  height: 250,
+  pos: new Vector(350, 200),
+  color: Color.Transparent,
+  rotation: toRadians(90),
 });
 
 class myScene extends Scene {
@@ -54,6 +68,7 @@ class myScene extends Scene {
   onActivate(context: SceneActivationContext<unknown>): void {
     this.add(p1);
     this.add(p2);
+    this.add(p3);
 
     p1.graphics.material?.update(shader => {
       shader.setUniformFloatVector("U_resolution", new Vector(250, 250));
@@ -62,7 +77,7 @@ class myScene extends Scene {
     });
 
     p2.graphics.material?.update(shader => {
-      shader.setUniformFloatVector("U_resolution", new Vector(250, 250));
+      //shader.setUniformFloatVector("U_resolution", new Vector(250, 250));
       shader.setUniformBoolean("U_highlighted", true);
     });
   }
@@ -75,6 +90,9 @@ class myScene extends Scene {
       shader.setUniformFloat("U_time", this._time);
     });
     p2.graphics.material?.update(shader => {
+      shader.setUniformFloat("U_time", this._time);
+    });
+    p3.graphics.material?.update(shader => {
       shader.setUniformFloat("U_time", this._time);
     });
   }
@@ -94,8 +112,16 @@ var bholeMaterial = game.graphicsContext.createMaterial({
   },
 });
 
+let nebulaMaterial = game.graphicsContext.createMaterial({
+  fragmentSource: nebulaFrag,
+  images: {
+    U_noise1: imgNoise3,
+  },
+});
+
 p1.graphics.material = starMaterial;
 p2.graphics.material = bholeMaterial;
+p3.graphics.material = nebulaMaterial;
 
 let m_scene = new myScene();
 game.add("m_scene", m_scene);

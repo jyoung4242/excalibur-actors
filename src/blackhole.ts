@@ -217,7 +217,7 @@ float noise(vec2 uv)
 
 void main() {
     //vec2 pixelCoords = (v_uv - 0.5) * U_resolution;
-    vec2 uv = gl_FragCoord.xy/U_resolution.y-vec2(1.,1.);
+    vec2 uv = (v_uv -.5) * 2.0;
     
     vec3 col;
 
@@ -274,6 +274,5 @@ void main() {
     col_a = mix(col_a, vec4( 1.2* BULB_BLACK_COL, 1.0), 2.0*bulb_black);
     //gl_FragColor =col_a;
     fragColor = col_a;
-    fragColor.rgb = vec3(gl_FragCoord.xy, 0.0);
-    fragColor.rgb = vec3(gl_FragCoord.xy/U_resolution, 0.0);
+    fragColor.rgb = fragColor.rgb * fragColor.a;
 }`;

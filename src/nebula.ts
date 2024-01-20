@@ -1,5 +1,10 @@
-export const nebulaFrag = `
+export const nebulaFrag = `#version 300 es
 //#define GALAXY
+precision highp float;
+uniform sampler2D U_noise1;
+uniform float U_time;
+in vec2 v_uv;
+out vec4 fragColor;
 
 struct PointLight {
     vec2 pos;
@@ -18,10 +23,11 @@ float Noise2D( in vec2 x )
     vec2 f = fract(x);
 	f = f*f*(3.0-2.0*f);
 	ivec2 uv = p.xy;
-	float rgA = texelFetch( iChannel0, (uv+ivec2(0,0))&255, 0 ).x;
-    float rgB = texelFetch( iChannel0, (uv+ivec2(1,0))&255, 0 ).x;
-    float rgC = texelFetch( iChannel0, (uv+ivec2(0,1))&255, 0 ).x;
-    float rgD = texelFetch( iChannel0, (uv+ivec2(1,1))&255, 0 ).x;
+   
+	float rgA = texelFetch( U_noise1, (uv+ivec2(0,0))&255, 0 ).x;
+    float rgB = texelFetch( U_noise1, (uv+ivec2(1,0))&255, 0 ).x;
+    float rgC = texelFetch( U_noise1, (uv+ivec2(0,1))&255, 0 ).x;
+    float rgD = texelFetch( U_noise1, (uv+ivec2(1,1))&255, 0 ).x;
     return mix( mix( rgA, rgB, f.x ),
                 mix( rgC, rgD, f.x ), f.y );
 }
@@ -62,7 +68,7 @@ vec3 BackgroundColor( in vec2 uv ) {
     // Sample various noises and multiply them
     float noise1 = ComputeFBMStars(uv * 5.0);
     float noise2 = ComputeFBMStars(uv * vec2(15.125, 25.7));
-    float noise3 = ComputeFBMStars((uv + vec2(0.5, 0.1)) * 4.0 + iTime * 0.35);
+    float noise3 = ComputeFBMStars((uv + vec2(0.5, 0.1)) * 4.0 + U_time * 0.35);
     float starShape = noise1 * noise2 * noise3;
     
     // Compute star falloff - not really doing what i hoped it would, i wanted smooth falloff around each star
@@ -70,14 +76,14 @@ vec3 BackgroundColor( in vec2 uv ) {
     float baseThreshold = 0.6; // higher = less stars
     
     starShape = clamp(starShape - baseThreshold + falloffRadius, 0.0, 1.0);
-    starShape = 0.002;
+    //starShape = 0.002;
     float weight = starShape / (2.0 * falloffRadius);
     return weight * vec3(noise1 * 0.55, noise2 * 0.4, noise3 * 1.0) * 6.0; // artificial scale just makes the stars brighter
 }
 
-void mainImage( out vec4 fragColor, in vec2 fragCoord )
+void main(  )
 {
-	vec2 uv = fragCoord.xy / iResolution.xy;
+	vec2 uv = v_uv;
     vec2 scrPt = uv * 2.0 - 1.0;
     
     vec4 finalColor;
@@ -89,7 +95,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
     // Warp noise domain
     float swirlStrength = 2.5;
     float dist = length(samplePt);
-    float theta = dist * swirlStrength - iTime * 0.225;
+    float theta = dist * swirlStrength - U_time * 0.225;
     mat2 rot;
     
     // cache calls to sin/cos
@@ -104,20 +110,20 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
     samplePt *= rot;
     samplePt *= 3.0;
     
-    float noiseVal = ComputeFBM(samplePt + sin(iTime * 0.03125));
+    float noiseVal = ComputeFBM(samplePt + sin(U_time * 0.03125));
     float maxIntensity = 1.65; // kinda is the galaxy radius/size?
     noiseVal *= clamp(pow(maxIntensity - dist, 5.0) * (1.0 / maxIntensity), 0.0, 1.0);
     
     // Lighting
     PointLight l1;
     l1.pos = vec2(0);
-    l1.col = mix(vec3(0.75, 0.5, 0.3), vec3(0.55, 0.4, 0.95), clamp(dist * 0.5, 0.0, 1.0) + (sin(iTime * 0.5) * 0.5 + 0.5) * 0.5);
+    l1.col = mix(vec3(0.75, 0.5, 0.3), vec3(0.55, 0.4, 0.95), clamp(dist * 0.5, 0.0, 1.0) + (sin(U_time * 0.5) * 0.5 + 0.5) * 0.5);
     l1.intensity = 4.0;
     
     vec3 l1Col = l1.col * l1.intensity * 1.0 / pow(length(l1.pos - samplePt), 0.5);
     //vec4 finalColor = vec4(BackgroundColor(fragCoord.xy * 0.25), 1.0);
     //vec4 finalColor = vec4(l1Col * noiseVal, 1.0);
-    finalColor = vec4(mix(BackgroundColor(fragCoord.xy * 0.125), l1Col * noiseVal, pow(noiseVal, 1.0)), 1.0);
+    finalColor = vec4(mix(BackgroundColor(uv.xy * 0.125), l1Col * noiseVal, pow(noiseVal, 1.0)), 1.0);
     
     #else // Milky Way    
     
@@ -143,7 +149,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
     
     vec2 rotatedScrPt = scrPt * rot;
     
-    float noiseVal = ComputeFBM(rotatedScrPt * 5.0 + 50.0 + iTime * 0.015625 * 1.5);
+    float noiseVal = ComputeFBM(rotatedScrPt * 5.0 + 50.0 + U_time * 0.015625 * 1.5);
     
     rotatedScrPt += vec2(noiseVal) * 0.3;
     
@@ -154,7 +160,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
     float xDirFalloff_rot = (cos(rotatedScrPt.x * 2.0) * 0.5 + 0.5);
     
     // Falloff in y dir and x-dir fade
-    float lowFreqNoiseForFalloff = ComputeFBM(rotatedScrPt * 4.0 - iTime * 0.015625 * 1.5); // 1/64
+    float lowFreqNoiseForFalloff = ComputeFBM(rotatedScrPt * 4.0 - U_time * 0.015625 * 1.5); // 1/64
     //float lowFreqNoiseForFalloff_offset = ComputeFBM(rotatedScrPt * 1.5 + 0.005 * lowFreqNoiseForFalloff);
     milkywayShape = clamp(pow(centralFalloff_rot, 3.0) - lowFreqNoiseForFalloff * 0.5, 0.0, 1.0) * xDirFalloff_rot;
     
@@ -183,7 +189,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
     color -= vec3(removeColor);
     
     // Add some blue to the background
-    vec3 backgroundCol = BackgroundColor(fragCoord.xy * 0.125) * pow(centralFalloff, 0.5) * pow(xDirFalloff, 0.5);
+    vec3 backgroundCol = BackgroundColor(uv.xy * 0.125) * pow(centralFalloff, 0.5) * pow(xDirFalloff, 0.5);
     vec3 blueish = vec3(0.2, 0.2, 0.4);
     backgroundCol += blueish * (5.0 - milkywayShape) * pow(centralFalloff_rot, 2.0) * lowFreqNoiseForFalloff * pow(xDirFalloff, 0.75);
     
