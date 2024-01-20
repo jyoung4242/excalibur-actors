@@ -50,8 +50,8 @@ float inverseLerp(float v, float minValue, float maxValue) {
 }
 
 float remap(float v, float inMin, float inMax, float outMin, float outMax) {
-  float t = inverseLerp(v, inMin, inMax);
-  return mix(outMin, outMax, t);
+  float lt = inverseLerp(v, inMin, inMax);
+  return mix(outMin, outMax, lt);
 }
 
 
@@ -267,7 +267,7 @@ void main() {
     vec3 galColor = gaz_trsp*(1.7*GALAXY_COL) + 1.9*stars;
     vec4 col_a = mix(vec4(SKY_COL,0.0),vec4(galColor,1.5), dens );
     col_a = mix(col_a,   vec4(2.*BULB_COL,1.0),   1.05* bulb);
-	if(U_highlighted==false){
+	  if(U_highlighted==false){
         col_a = col_a * 0.6;
     }
 

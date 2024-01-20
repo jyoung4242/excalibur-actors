@@ -47,9 +47,9 @@ let p1 = new Actor({
 
 let p2 = new Actor({
   name: "hole",
-  width: 100,
-  height: 100,
-  pos: new Vector(525, 200),
+  width: 250,
+  height: 250,
+  pos: new Vector(300, 200),
   color: Color.Transparent,
 });
 
@@ -66,9 +66,9 @@ class myScene extends Scene {
   _time: number = 0;
 
   onActivate(context: SceneActivationContext<unknown>): void {
-    this.add(p1);
+    // this.add(p1);
     this.add(p2);
-    this.add(p3);
+    //this.add(p3);
 
     p1.graphics.material?.update(shader => {
       shader.setUniformFloatVector("U_resolution", new Vector(250, 250));
@@ -86,15 +86,15 @@ class myScene extends Scene {
 
   update(engine: Engine, delta: number): void {
     this._time += delta / 1000;
-    p1.graphics.material?.update(shader => {
+    /*  p1.graphics.material?.update(shader => {
       shader.setUniformFloat("U_time", this._time);
-    });
+    }); */
     p2.graphics.material?.update(shader => {
       shader.setUniformFloat("U_time", this._time);
     });
-    p3.graphics.material?.update(shader => {
+    /*  p3.graphics.material?.update(shader => {
       shader.setUniformFloat("U_time", this._time);
-    });
+    }); */
   }
 }
 
