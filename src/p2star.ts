@@ -1,28 +1,13 @@
-export const blackHoleFrag = `#version 300 es
+export const p2StarFrag = `#version 300 es
 precision highp float;
 
 in vec2 v_uv;
-out vec4 fragColor;
+
 uniform vec2 U_resolution;
 uniform float U_time;
-uniform bool U_highlighted;
-uniform sampler2D U_noise1;
-uniform sampler2D U_noise2; 
-
-const float RETICULATION = 3.;  // strenght of dust texture
-const float NB_ARMS = 5.;       // number of arms
-const float COMPR = .1;         // compression in arms
-const float SPEED = .2;
-const float GALAXY_R = 1./2.;
-const float BULB_R = 1./2.5;
-const vec3 GALAXY_COL = vec3(.9,.9,1.); //(1.,.8,.5);
-const vec3 BULB_COL   = vec3(1.,1.0,1.0);
-const float BULB_BLACK_R = 1./4.;
-const vec3 BULB_BLACK_COL   = vec3(0,0,0);
-const vec3 SKY_COL    = .5*vec3(.1,.3,.5);
-	
-#define Pi 3.1415927
-//#define t U_time
+uniform vec3 U_color;
+uniform bool U_highlight;
+out vec4 fragColor;
 
 vec3 mod289(vec3 x)
 {
@@ -50,8 +35,8 @@ float inverseLerp(float v, float minValue, float maxValue) {
 }
 
 float remap(float v, float inMin, float inMax, float outMin, float outMax) {
-  float lt = inverseLerp(v, inMin, inMax);
-  return mix(outMin, outMax, lt);
+  float t = inverseLerp(v, inMin, inMax);
+  return mix(outMin, outMax, t);
 }
 
 
@@ -181,6 +166,15 @@ vec3 calcNormal(vec3 pos, vec3 n) {
   );
 }
 
+float simpleLimbDarkening(float cosTheta)
+{
+	float ul = 0.45; //u lambda //.85
+	float vl = 0.2; //v lambda  //.2
+    
+	float sundisk = cosTheta;
+	float limbfilt = 1.0 - ul - vl + ul*cos(asin(sundisk)) + vl*pow(cos(asin(sundisk)),0.1);
+    return limbfilt;
+}
 
 mat3 rotateY(float radians) {
   float s = sin(radians);
@@ -191,89 +185,61 @@ mat3 rotateY(float radians) {
       -s, 0.0, c);
 }
 
-float tex(vec2 uv){
-    return  texture(U_noise1,uv).r;
+
+vec3 drawStar(vec2 pixelCoords, vec3 colour, float starSize, float d){
+  vec3 starColor = vec3(colour);
+  float x = pixelCoords.x/starSize;
+  float y = pixelCoords.y/starSize;
+  float z = sqrt(1.0 - x * x - y * y);
+  mat3 starRotation = rotateY(U_time * 0.25);
+
+  vec3 viewNormal = vec3(x, y, z);
+  vec3 wsPosition = starRotation * viewNormal;
+  vec3 wsNormal = starRotation* normalize(wsPosition);
+  vec3 noiseCoord = wsPosition * 2.0;
+  float noiseSample = fbm(noiseCoord, 4, 0.5, 2.0, 4.0);// was 6 octaves
+  starColor = vec3(noiseSample);
+  float wrap = 0.05;
+  
+  //Colouring  
+  vec3 primaryStarColor = mix(colour, clamp(colour * 1.75, 0.0, 1.0), smoothstep(0.01,0.2,noiseSample));
+  vec3 darkenedColor =  mix( clamp(primaryStarColor * 0.9, 0.0, 1.0),clamp(primaryStarColor * 0.5, 0.0, 1.0),smoothstep(0.005,0.1,noiseSample));
+   
+  starColor = mix(darkenedColor, primaryStarColor, smoothstep(0.02, 0.03, noiseSample));
+
+  //Lighting
+  vec3 wsLightDir = normalize(vec3(0.5, 1.0, 0.5));
+  vec3 wsSurfaceNormal = calcNormal(noiseCoord, wsNormal);
+  float dp = max(
+    0.0, (dot(wsLightDir, wsSurfaceNormal) + wrap) / (1.0 + wrap));
+
+  //Darkening
+  float sky = max(0.0, dot(vec2(x,y),vec2(x,y)));
+  vec3 col = vec3(starColor);
+  col = vec3(simpleLimbDarkening(sky));
+  starColor *= col;
+
+  colour = mix(colour, starColor, smoothstep(0.0, -1.0, d));
+  return vec3(colour);
 }
 
 
-// --- perlin turbulent noise + rotation
-float noise(vec2 uv)
-{
-	float v=0.;
-	float a=-SPEED*U_time,co=cos(a),si=sin(a); 
-	mat2 M = mat2(co,-si,si,co);
-	const int L = 7;
-	float s=1.;
-	for (int i=0; i<L; i++)
-	{
-		uv = M*uv;
-		float b = tex(uv*s);
-		v += 1./s* pow(b,RETICULATION); 
-		s *= 2.;
-	}
-	
-    return v/2.;
-}
 
 void main() {
-    //vec2 pixelCoords = (v_uv - 0.5) * U_resolution;
-    vec2 uv = (v_uv -.5) * 2.0;
+  vec2 pixelCoords = (v_uv - 0.5) * U_resolution;
+  float starSize = 25.0;
+  float d = sdfCircle(pixelCoords,starSize);
+  float distanceFalloff = 1.0/(d/350.0);
+  distanceFalloff*=0.0125;
+  distanceFalloff = pow(distanceFalloff,0.9);
     
-    vec3 col;
-
-    // spiral stretching with distance
-    float rho = length(uv); // polar coords
-    float ang = atan(uv.y,uv.x);
-    float shear = 2.*log(rho); // logarythmic spiral
-    float c = cos(shear);
-    float s = sin(shear);
-    mat2 R = mat2(c,-s,s,c);
-
-    // galaxy profile
-    float r; 
-    r = rho/GALAXY_R; 
-    float dens = exp(-r*r);
-    r = rho/BULB_R;
-    float bulb = exp(-r*r);
-    r = rho/BULB_BLACK_R; 
-    float bulb_black = exp(-r*r);
-    float phase = NB_ARMS*(ang-shear);
-
-    if(U_highlighted){
-        ang = ang-COMPR*cos(phase)+SPEED*U_time;    
-    }else{
-        ang = ang-COMPR*cos(phase);
-    }
-
-    //ang = ang-COMPR*cos(phase)+SPEED*t;
-    uv = rho*vec2(cos(ang),sin(ang));
-    float spires = 1.+NB_ARMS*COMPR*sin(phase);
-    dens *= .7*spires;	
-
-	// gaz texture
-	float gaz = noise(.09*1.2*R*uv);
-	float gaz_trsp = pow((1.-gaz*dens),2.);
-
-    // stars
-	
-	// adapt stars size to display resolution
-	float ratio = 1.;
-	float stars1 = texture(U_noise2,ratio*uv+.5).r;
-    float stars2 = texture(U_noise2,ratio*uv+.5).r;
-    float stars = pow(1.-(1.-stars1)*(1.-stars2),5.);
-
-
-    // mix all	
-    vec3 galColor = gaz_trsp*(1.7*GALAXY_COL) + 1.9*stars;
-    vec4 col_a = mix(vec4(SKY_COL,0.0),vec4(galColor,1.5), dens );
-    col_a = mix(col_a,   vec4(2.*BULB_COL,1.0),   1.05* bulb);
-	  if(U_highlighted==false){
-        col_a = col_a * 0.6;
-    }
-
-    col_a = mix(col_a, vec4( 1.2* BULB_BLACK_COL, 1.0), 2.0*bulb_black);
-    //gl_FragColor =col_a;
-    fragColor = col_a;
-    fragColor.rgb = fragColor.rgb * fragColor.a;
-
+  if(d<=0.0){
+    fragColor = vec4(drawStar(pixelCoords, U_color, starSize, d), step(0.0,-d-1.0));
+   } else if (d <= starSize*3.0 && U_highlight)  {
+     vec3 newCol = vec3(U_color)*distanceFalloff;
+     //(0.6*distanceFalloff)
+     float alpha = smoothstep(0.2,1.0, (0.6*distanceFalloff));
+     fragColor = vec4(newCol, alpha);
+     fragColor.rgb = fragColor.rgb * fragColor.a;
+   }
 }`;
