@@ -13,6 +13,8 @@ import {
   ImageSource,
   ImageFiltering,
   toRadians,
+  EasingFunctions,
+  Sound,
 } from "excalibur";
 import { starFrag } from "./star";
 import { blackHoleFrag } from "./blackhole";
@@ -27,10 +29,17 @@ import noise2 from "./assets/fractal.png";
 //@ts-ignore
 import greynoise from "./assets/blue.png";
 import { p2StarFrag } from "./p2star";
+//@ts-ignore
+import bloop from "./assets/sound.wav";
 
 const imgNoise1 = new ImageSource(noise1);
 const imgNoise2 = new ImageSource(noise2);
 const imgNoise3 = new ImageSource(greynoise);
+
+const beep = new Sound(bloop);
+
+let fade: boolean = true;
+beep.load();
 
 //style="pointer-events: auto;"
 //style="display: flex; justify-content: center; align-items: center; width: 100%;pointer-events: none;"
@@ -119,14 +128,55 @@ class myScene extends Scene {
   _time: number = 0;
 
   onActivate(context: SceneActivationContext<unknown>): void {
-    console.log("setting up pointer event");
+    console.log("setting up scene");
+
+    game.input.pointers.on("down", pe => {
+      let actor = p1Array[0];
+      beep.play();
+      if (actor.hasTag("left")) {
+        actor.removeTag("left");
+        actor.addTag("right");
+        actor.actions.easeBy(new Vector(110, 0), 1500, EasingFunctions.EaseInOutQuad);
+      } else {
+        actor.removeTag("right");
+        actor.addTag("left");
+        actor.actions.easeBy(new Vector(-110, 0), 1500, EasingFunctions.EaseInOutQuad);
+      }
+    });
+
+    game.input.keyboard.on("press", ke => {
+      console.log(ke);
+      if (ke.key == "Space") {
+        //toggle fade
+
+        if (!fade) {
+          fade = true;
+          console.log("fade in");
+          p1Array.forEach(act => {
+            act.graphics.material?.update(shader => {
+              shader.setUniformFloat("u_opacity", 1.0);
+            });
+            act.graphics.opacity = 1;
+          });
+        } else {
+          console.log("fade out");
+          fade = false;
+          p1Array.forEach(act => {
+            act.graphics.material?.update(shader => {
+              shader.setUniformFloat("u_opacity", 0.0);
+            });
+            act.graphics.opacity = 0;
+          });
+        }
+      }
+    });
 
     p1Array.forEach(act => {
       this.add(act);
       act.graphics.material?.update(shader => {
         shader.setUniformFloatVector("U_resolution", new Vector(500, 500));
         shader.setUniform("uniform3f", "U_color", 0.75, 0.2, 0.2);
-        shader.setUniformBoolean("U_highlight", false);
+        shader.setUniformBoolean("U_highlight", true);
       });
     });
 
@@ -138,13 +188,12 @@ class myScene extends Scene {
         shader.setUniformBoolean("U_highlight", false);
       });
     });
-    //this.add(p1);
+
     this.add(p2);
     this.add(p3);
     this.add(starfield);
 
     p2.graphics.material?.update(shader => {
-      //shader.setUniformFloatVector("U_resolution", new Vector(250, 250));
       shader.setUniformBoolean("U_highlighted", true);
     });
 
@@ -160,14 +209,13 @@ class myScene extends Scene {
     p1Array[1].pos = new Vector(585, 375);
     p1Array[2].pos = new Vector(695, 480);
     p1Array[3].pos = new Vector(806, 590);
-    p1Array[0].actions.fade(0, 5000);
+    p1Array[0].addTag("left");
   }
 
   onDeactivate(context: SceneActivationContext<undefined>): void {}
 
-  update(engine: Engine, delta: number): void {
+  onPostUpdate(engine: Engine<any>, delta: number): void {
     this._time += delta / 1000;
-
     p1Array.forEach(act => {
       act.graphics.material?.update(shader => {
         shader.setUniformFloat("U_time", this._time);
@@ -194,35 +242,7 @@ class myScene extends Scene {
 
 game.backgroundColor = Color.Black;
 
-let starMaterial = game.graphicsContext.createMaterial({ fragmentSource: starFrag });
-let p2starMaterial = game.graphicsContext.createMaterial({ fragmentSource: p2StarFrag });
-var bholeMaterial = game.graphicsContext.createMaterial({
-  fragmentSource: blackHoleFrag,
-  images: {
-    U_noise1: imgNoise1,
-    U_noise2: imgNoise2,
-  },
-});
-let nebulaMaterial = game.graphicsContext.createMaterial({
-  fragmentSource: gridNebulaFrag,
-  images: {
-    U_noise1: imgNoise3,
-  },
-});
-let starfieldMaterial = game.graphicsContext.createMaterial({ fragmentSource: starfieldfragment });
-
-p1Array.forEach(act => {
-  act.graphics.material = starMaterial;
-});
-
-p2Array.forEach(act => {
-  act.graphics.material = p2starMaterial;
-});
-
-//p1.graphics.material = starMaterial;
-p2.graphics.material = bholeMaterial;
-p3.graphics.material = nebulaMaterial;
-starfield.graphics.material = starfieldMaterial;
+setupGraphics();
 
 let m_scene = new myScene();
 game.add("m_scene", m_scene);
@@ -231,18 +251,37 @@ await imgNoise1.load();
 await imgNoise2.load();
 await imgNoise3.load();
 
-game.input.pointers.on("down", () => {
-  console.log("pointer");
-});
-
-game.input.pointers.on("move", () => {
-  console.log("moving");
-});
-
-game.input.keyboard.on("press", () => {
-  console.log("keyboard");
-});
-
-console.log(game);
 game.start();
 game.goToScene("m_scene");
+
+function setupGraphics() {
+  let starMaterial = game.graphicsContext.createMaterial({ fragmentSource: starFrag });
+  let p2starMaterial = game.graphicsContext.createMaterial({ fragmentSource: p2StarFrag });
+  var bholeMaterial = game.graphicsContext.createMaterial({
+    fragmentSource: blackHoleFrag,
+    images: {
+      U_noise1: imgNoise1,
+      U_noise2: imgNoise2,
+    },
+  });
+  let nebulaMaterial = game.graphicsContext.createMaterial({
+    fragmentSource: gridNebulaFrag,
+    images: {
+      U_noise1: imgNoise3,
+    },
+  });
+  let starfieldMaterial = game.graphicsContext.createMaterial({ fragmentSource: starfieldfragment });
+
+  p1Array.forEach(act => {
+    act.graphics.material = starMaterial;
+  });
+
+  p2Array.forEach(act => {
+    act.graphics.material = p2starMaterial;
+  });
+
+  //p1.graphics.material = starMaterial;
+  p2.graphics.material = bholeMaterial;
+  p3.graphics.material = nebulaMaterial;
+  starfield.graphics.material = starfieldMaterial;
+}

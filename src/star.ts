@@ -8,6 +8,7 @@ uniform float U_time;
 uniform vec3 U_color;
 uniform bool U_highlight;
 out vec4 fragColor;
+uniform float u_opacity;
 
 vec3 mod289(vec3 x)
 {
@@ -237,11 +238,15 @@ void main() {
     
   if(d<=0.0){
     fragColor = vec4(drawStar(pixelCoords, U_color, starSize, d), step(0.0,-d-1.0));
+    fragColor.a = u_opacity * fragColor.a;
+
    } else if (d <= starSize*3.0 && U_highlight)  {
      vec3 newCol = vec3(U_color)*distanceFalloff;
      //(0.6*distanceFalloff)
-     float alpha = smoothstep(0.2,1.0, (0.6*distanceFalloff));
-     fragColor = vec4(newCol, alpha);
+     float alpha = u_opacity * smoothstep(0.2,1.0, (0.6*distanceFalloff));
+     fragColor = vec4(newCol,  alpha);
      fragColor.rgb = fragColor.rgb * fragColor.a;
-   }
+     
+   }  
+ 
 }`;
