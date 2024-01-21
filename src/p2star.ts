@@ -191,7 +191,7 @@ vec3 drawStar(vec2 pixelCoords, vec3 colour, float starSize, float d){
   float x = pixelCoords.x/starSize;
   float y = pixelCoords.y/starSize;
   float z = sqrt(1.0 - x * x - y * y);
-  mat3 starRotation = rotateY(U_time * 0.25);
+   mat3 starRotation = rotateY(U_time * 0.25);
 
   vec3 viewNormal = vec3(x, y, z);
   vec3 wsPosition = starRotation * viewNormal;
@@ -219,13 +219,35 @@ vec3 drawStar(vec2 pixelCoords, vec3 colour, float starSize, float d){
   col = vec3(simpleLimbDarkening(sky));
   starColor *= col;
 
-  colour = mix(colour, starColor, smoothstep(0.0, -1.0, d));
+  //colour = mix(colour, starColor, smoothstep(0.0, -1.0, d));
+  colour = mix(colour, starColor, smoothstep( 0.1, 0.15, 1. - d));
+ 
   return vec3(colour);
 }
 
 
-
 void main() {
+  vec2 pixelCoords = (v_uv - 0.5) * U_resolution;
+  float starSize = 175.0;
+  float d = sdfCircle(pixelCoords,starSize);
+  float distanceFalloff = 1.0/(d/1000.0);
+  distanceFalloff*=0.0525;
+  distanceFalloff = pow(distanceFalloff,0.9);
+    
+  if(d<=0.0){
+    fragColor = vec4(drawStar(pixelCoords, U_color, starSize, d), step(0.0,-d-1.0));
+   } else if (d <= starSize*3.0 && U_highlight)  {
+     vec3 newCol = vec3(U_color)*distanceFalloff;
+     //(0.6*distanceFalloff)
+     float alpha = smoothstep(0.2,1.0, (0.6*distanceFalloff));
+     fragColor = vec4(newCol, alpha);
+     fragColor.rgb = fragColor.rgb * fragColor.a;
+   }
+}`;
+
+/**
+ * 
+ * void main() {
   vec2 pixelCoords = (v_uv - 0.5) * U_resolution;
   float starSize = 25.0;
   float d = sdfCircle(pixelCoords,starSize);
@@ -242,4 +264,6 @@ void main() {
      fragColor = vec4(newCol, alpha);
      fragColor.rgb = fragColor.rgb * fragColor.a;
    }
-}`;
+}
+ * 
+ */

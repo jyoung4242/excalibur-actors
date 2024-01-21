@@ -191,7 +191,7 @@ vec3 drawStar(vec2 pixelCoords, vec3 colour, float starSize, float d){
   float x = pixelCoords.x/starSize;
   float y = pixelCoords.y/starSize;
   float z = sqrt(1.0 - x * x - y * y);
-  mat3 starRotation = rotateY(U_time * 0.25);
+   mat3 starRotation = rotateY(U_time * 0.25);
 
   vec3 viewNormal = vec3(x, y, z);
   vec3 wsPosition = starRotation * viewNormal;
@@ -219,7 +219,9 @@ vec3 drawStar(vec2 pixelCoords, vec3 colour, float starSize, float d){
   col = vec3(simpleLimbDarkening(sky));
   starColor *= col;
 
-  colour = mix(colour, starColor, smoothstep(0.0, -1.0, d));
+  //colour = mix(colour, starColor, smoothstep(0.0, -1.0, d));
+  colour = mix(colour, starColor, smoothstep( 0.1, 0.15, 1. - d));
+ 
   return vec3(colour);
 }
 
@@ -227,10 +229,10 @@ vec3 drawStar(vec2 pixelCoords, vec3 colour, float starSize, float d){
 
 void main() {
   vec2 pixelCoords = (v_uv - 0.5) * U_resolution;
-  float starSize = 25.0;
+  float starSize = 175.0;
   float d = sdfCircle(pixelCoords,starSize);
-  float distanceFalloff = 1.0/(d/350.0);
-  distanceFalloff*=0.0125;
+  float distanceFalloff = 1.0/(d/1000.0);
+  distanceFalloff*=0.0525;
   distanceFalloff = pow(distanceFalloff,0.9);
     
   if(d<=0.0){

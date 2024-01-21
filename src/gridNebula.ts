@@ -225,6 +225,6 @@ void main(  )
     finalColor = vec4(mix(backgroundCol, color, milkywayShape), 1);
     
     #endif
-    finalColor = drawGrid(finalColor.rgb, vec3(0.96,0.96,0.96), 100.0, 3.0);
+    finalColor = drawGrid(finalColor.rgb, vec3(0.96,0.96,0.96), 200.0, 3.0);
 	fragColor = finalColor;
 }`;

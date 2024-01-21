@@ -32,26 +32,30 @@ const imgNoise1 = new ImageSource(noise1);
 const imgNoise2 = new ImageSource(noise2);
 const imgNoise3 = new ImageSource(greynoise);
 
+//style="pointer-events: auto;"
+//style="display: flex; justify-content: center; align-items: center; width: 100%;pointer-events: none;"
+
 const model = {};
-const template = `<div> 
-    <canvas id="cnv"></canvas>
+const template = `
+<div> 
+    <canvas id="cnv" ></canvas>
 </div>`;
 await UI.create(document.body, model, template).attached;
 console.log(`Hello World`);
 
-let game = new Engine({ width: 600, height: 400, canvasElementId: "cnv", displayMode: DisplayMode.FitScreen });
+let game = new Engine({ width: 1280, height: 720, canvasElementId: "cnv", displayMode: DisplayMode.FitScreen });
 
 let p1Array: Actor[] = [];
 let p2Array: Actor[] = [];
 let bholeArray: Actor[] = [];
 
-for (let index = 0; index < 10; index++) {
+for (let index = 0; index < 8; index++) {
   p1Array.push(
     new Actor({
       name: "token",
-      width: 150,
-      height: 150,
-      pos: new Vector(35, 35 * index + 50),
+      width: 80,
+      height: 80,
+      pos: new Vector(90, 80 * index + 120),
       color: Color.Transparent,
       z: 2,
     })
@@ -59,9 +63,9 @@ for (let index = 0; index < 10; index++) {
   p2Array.push(
     new Actor({
       name: "token",
-      width: 150,
-      height: 150,
-      pos: new Vector(575, 35 * index + 50),
+      width: 80,
+      height: 80,
+      pos: new Vector(1200, 80 * index + 120),
       color: Color.Transparent,
       z: 2,
     })
@@ -81,20 +85,11 @@ for (let index = 0; index < 16; index++) {
   );
 }
 
-/* let p1 = new Actor({
-  name: "token",
-  width: 200,
-  height: 200,
-  pos: new Vector(188, 90),
-  color: Color.Transparent,
-  z: 2,
-}); */
-
 let p2 = new Actor({
   name: "hole",
-  width: 85,
-  height: 85,
-  pos: new Vector(395, 155),
+  width: 125,
+  height: 125,
+  pos: new Vector(810, 255),
   color: Color.Transparent,
   z: 2,
 });
@@ -103,9 +98,9 @@ let gridSize = 300;
 
 let p3 = new Actor({
   name: "nebula",
-  width: 250,
-  height: 250,
-  pos: new Vector(300, 250),
+  width: 450,
+  height: 450,
+  pos: new Vector(2560 / 4, 1700 / 4),
   color: Color.Transparent,
   rotation: toRadians(90),
   z: 1,
@@ -113,8 +108,8 @@ let p3 = new Actor({
 
 let starfield = new Actor({
   name: "starfield",
-  width: 1200,
-  height: 800,
+  width: 2560,
+  height: 1480,
   pos: new Vector(0, 0),
   color: Color.Transparent,
   z: 0,
@@ -124,10 +119,12 @@ class myScene extends Scene {
   _time: number = 0;
 
   onActivate(context: SceneActivationContext<unknown>): void {
+    console.log("setting up pointer event");
+
     p1Array.forEach(act => {
       this.add(act);
       act.graphics.material?.update(shader => {
-        shader.setUniformFloatVector("U_resolution", new Vector(250, 250));
+        shader.setUniformFloatVector("U_resolution", new Vector(500, 500));
         shader.setUniform("uniform3f", "U_color", 0.75, 0.2, 0.2);
         shader.setUniformBoolean("U_highlight", false);
       });
@@ -136,7 +133,7 @@ class myScene extends Scene {
     p2Array.forEach(act => {
       this.add(act);
       act.graphics.material?.update(shader => {
-        shader.setUniformFloatVector("U_resolution", new Vector(250, 250));
+        shader.setUniformFloatVector("U_resolution", new Vector(500, 500));
         shader.setUniform("uniform3f", "U_color", 0.2, 0.2, 0.8);
         shader.setUniformBoolean("U_highlight", false);
       });
@@ -152,12 +149,18 @@ class myScene extends Scene {
     });
 
     p3.graphics.material?.update(shader => {
-      shader.setUniformFloatVector("U_resolution", new Vector(400, 400));
+      shader.setUniformFloatVector("U_resolution", new Vector(800, 800));
     });
 
     starfield.graphics.material?.update(shader => {
       shader.setUniformFloatVector("U_resolution", new Vector(1200, 800));
     });
+
+    p1Array[0].pos = new Vector(472, 250);
+    p1Array[1].pos = new Vector(585, 375);
+    p1Array[2].pos = new Vector(695, 480);
+    p1Array[3].pos = new Vector(806, 590);
+    p1Array[0].actions.fade(0, 5000);
   }
 
   onDeactivate(context: SceneActivationContext<undefined>): void {}
@@ -228,6 +231,18 @@ await imgNoise1.load();
 await imgNoise2.load();
 await imgNoise3.load();
 
-game.start();
+game.input.pointers.on("down", () => {
+  console.log("pointer");
+});
 
+game.input.pointers.on("move", () => {
+  console.log("moving");
+});
+
+game.input.keyboard.on("press", () => {
+  console.log("keyboard");
+});
+
+console.log(game);
+game.start();
 game.goToScene("m_scene");
