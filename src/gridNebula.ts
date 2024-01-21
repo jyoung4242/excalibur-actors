@@ -86,9 +86,22 @@ vec3 BackgroundColor( in vec2 uv ) {
 vec4 drawGrid(vec3 color, vec3 lineColor, float spacing, float width ){
     vec2 center = v_uv -0.5;
     vec2 cells = abs(fract(center* U_resolution/spacing)-0.5);
-    float distToEdge = (0.5- max(cells.x, cells.y))*spacing;
+    float distToEdge = (0.5 - max(cells.x, cells.y))*spacing;
     float lines = smoothstep(0.0, width, distToEdge);
-    vec3 rslt = mix(lineColor, color, lines);
+    
+
+    //float dist = 1.0/(lines);
+    //dist *= 1.5;
+    //dist = pow(abs(sin(U_time*0.75)*dist), 0.8);
+    //lineColor = dist*lineColor;
+
+    float pFactor = abs(sin(U_time * 0.6));
+    pFactor = pow(pFactor, 0.6) * 3.0;
+    vec3 pLineColor = clamp(pFactor * lineColor, 0.8, 5.0);
+
+    //vec3 rslt = mix(lineColor, color, lines);
+    vec3 rslt = mix(pLineColor, color, lines);
+
     return vec4(rslt, 1.0);
 }
 
@@ -212,6 +225,6 @@ void main(  )
     finalColor = vec4(mix(backgroundCol, color, milkywayShape), 1);
     
     #endif
-    finalColor = drawGrid(finalColor.rgb, vec3(0.96,0.96,0.96), 100.0, 2.5);
+    finalColor = drawGrid(finalColor.rgb, vec3(0.96,0.96,0.96), 100.0, 3.0);
 	fragColor = finalColor;
 }`;

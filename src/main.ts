@@ -92,9 +92,9 @@ for (let index = 0; index < 16; index++) {
 
 let p2 = new Actor({
   name: "hole",
-  width: 100,
-  height: 100,
-  pos: new Vector(410, 90),
+  width: 85,
+  height: 85,
+  pos: new Vector(395, 155),
   color: Color.Transparent,
   z: 2,
 });
@@ -129,7 +129,7 @@ class myScene extends Scene {
       act.graphics.material?.update(shader => {
         shader.setUniformFloatVector("U_resolution", new Vector(250, 250));
         shader.setUniform("uniform3f", "U_color", 0.75, 0.2, 0.2);
-        shader.setUniformBoolean("U_highlight", true);
+        shader.setUniformBoolean("U_highlight", false);
       });
     });
 
@@ -138,11 +138,11 @@ class myScene extends Scene {
       act.graphics.material?.update(shader => {
         shader.setUniformFloatVector("U_resolution", new Vector(250, 250));
         shader.setUniform("uniform3f", "U_color", 0.2, 0.2, 0.8);
-        shader.setUniformBoolean("U_highlight", true);
+        shader.setUniformBoolean("U_highlight", false);
       });
     });
     //this.add(p1);
-    //this.add(p2);
+    this.add(p2);
     this.add(p3);
     this.add(starfield);
 
