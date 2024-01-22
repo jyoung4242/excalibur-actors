@@ -23,6 +23,11 @@ import { gridNebulaFrag } from "./gridNebula";
 import { starfieldfragment } from "./starfield";
 
 //@ts-ignore
+import blackhole from "./assets/bhole.png";
+//@ts-ignore
+import customCursor from "custom-cursor.js";
+
+//@ts-ignore
 import noise1 from "./assets/perlin.png";
 //@ts-ignore
 import noise2 from "./assets/fractal.png";
@@ -44,13 +49,33 @@ beep.load();
 //style="pointer-events: auto;"
 //style="display: flex; justify-content: center; align-items: center; width: 100%;pointer-events: none;"
 
-const model = {};
+const model = {
+  cursor: undefined as undefined | HTMLElement,
+  hoverCursor: false,
+  cursorSize: 25,
+  get hoverPosition() {
+    if (this.hoverCursor == true) return "0";
+    else return "100";
+  },
+};
+
 const template = `
+
 <div> 
+    
     <canvas id="cnv" ></canvas>
 </div>`;
 await UI.create(document.body, model, template).attached;
 console.log(`Hello World`);
+/* 
+const cursorOptions = {
+  hideTrueCursor: true,
+  focusClass: "cursor--focused",
+};
+
+let cursor = new customCursor(model.cursor, cursorOptions);
+cursor.initialize();
+console.log(cursor); */
 
 let game = new Engine({ width: 1280, height: 720, canvasElementId: "cnv", displayMode: DisplayMode.FitScreen });
 
@@ -59,16 +84,22 @@ let p2Array: Actor[] = [];
 let bholeArray: Actor[] = [];
 
 for (let index = 0; index < 8; index++) {
-  p1Array.push(
-    new Actor({
-      name: "token",
-      width: 80,
-      height: 80,
-      pos: new Vector(90, 80 * index + 120),
-      color: Color.Transparent,
-      z: 2,
-    })
-  );
+  let tempActor = new Actor({
+    name: "token",
+    width: 80,
+    height: 80,
+    pos: new Vector(90, 80 * index + 120),
+    color: Color.Transparent,
+    z: 2,
+  });
+  tempActor.on("pointerenter", () => {
+    document.body.classList.add("hoverCursor");
+  });
+  tempActor.on("pointerexit", () => {
+    console.log("exiting");
+    document.body.classList.remove("hoverCursor");
+  });
+  p1Array.push(tempActor);
   p2Array.push(
     new Actor({
       name: "token",
@@ -131,21 +162,33 @@ class myScene extends Scene {
     console.log("setting up scene");
 
     game.input.pointers.on("down", pe => {
+      console.log("click");
+
       let actor = p1Array[0];
+      let aque = actor.actions.getQueue();
+      //guard condition
+      console.log(aque.isComplete());
+      if (!aque.isComplete()) return;
+
       beep.play();
       if (actor.hasTag("left")) {
+        model.hoverCursor = true;
         actor.removeTag("left");
         actor.addTag("right");
         actor.actions.easeBy(new Vector(110, 0), 1500, EasingFunctions.EaseInOutQuad);
       } else {
+        model.hoverCursor = false;
         actor.removeTag("right");
         actor.addTag("left");
         actor.actions.easeBy(new Vector(-110, 0), 1500, EasingFunctions.EaseInOutQuad);
       }
     });
 
+    window.addEventListener("resize", () => {
+      model.cursorSize = game.screen.drawWidth * 0.03;
+    });
+
     game.input.keyboard.on("press", ke => {
-      console.log(ke);
       if (ke.key == "Space") {
         //toggle fade
 
@@ -156,7 +199,8 @@ class myScene extends Scene {
             act.graphics.material?.update(shader => {
               shader.setUniformFloat("u_opacity", 1.0);
             });
-            act.graphics.opacity = 1;
+            //act.graphics.opacity = 1;
+            fadeIn(act, 1500);
           });
         } else {
           console.log("fade out");
@@ -165,7 +209,8 @@ class myScene extends Scene {
             act.graphics.material?.update(shader => {
               shader.setUniformFloat("u_opacity", 0.0);
             });
-            act.graphics.opacity = 0;
+            //act.graphics.opacity = 0;
+            fadeOut(act, 1500);
           });
         }
       }
@@ -176,7 +221,7 @@ class myScene extends Scene {
       act.graphics.material?.update(shader => {
         shader.setUniformFloatVector("U_resolution", new Vector(500, 500));
         shader.setUniform("uniform3f", "U_color", 0.75, 0.2, 0.2);
-        shader.setUniformBoolean("U_highlight", true);
+        shader.setUniformBoolean("U_highlight", false);
       });
     });
 
@@ -210,6 +255,9 @@ class myScene extends Scene {
     p1Array[2].pos = new Vector(695, 480);
     p1Array[3].pos = new Vector(806, 590);
     p1Array[0].addTag("left");
+    p1Array[0].events.on("actioncomplete", ae => {
+      console.log("action done", ae);
+    });
   }
 
   onDeactivate(context: SceneActivationContext<undefined>): void {}
@@ -251,6 +299,8 @@ await imgNoise1.load();
 await imgNoise2.load();
 await imgNoise3.load();
 
+document.body.classList.add("normCursor");
+
 game.start();
 game.goToScene("m_scene");
 
@@ -284,4 +334,26 @@ function setupGraphics() {
   p2.graphics.material = bholeMaterial;
   p3.graphics.material = nebulaMaterial;
   starfield.graphics.material = starfieldMaterial;
+}
+
+function fadeIn(act: Actor, time: number) {
+  let handler = setInterval(() => {
+    if (act.graphics.opacity >= 1) {
+      act.graphics.opacity = 1;
+      clearInterval(handler);
+      return;
+    }
+    act.graphics.opacity += 0.01;
+  }, time / 100);
+}
+
+function fadeOut(act: Actor, time: number) {
+  let handler = setInterval(() => {
+    if (act.graphics.opacity <= 0) {
+      act.graphics.opacity = 0;
+      clearInterval(handler);
+      return;
+    }
+    act.graphics.opacity -= 0.01;
+  }, time / 100);
 }

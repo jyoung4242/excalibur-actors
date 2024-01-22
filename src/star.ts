@@ -237,7 +237,8 @@ void main() {
   distanceFalloff = pow(distanceFalloff,0.9);
     
   if(d<=0.0){
-    fragColor = vec4(drawStar(pixelCoords, U_color, starSize, d), step(0.0,-d-1.0));
+    
+    fragColor = vec4(drawStar(pixelCoords, U_color, starSize, d)*u_opacity, step(0.0,-d-1.0));
     fragColor.a = u_opacity * fragColor.a;
 
    } else if (d <= starSize*3.0 && U_highlight)  {
@@ -245,7 +246,7 @@ void main() {
      //(0.6*distanceFalloff)
      float alpha = u_opacity * smoothstep(0.2,1.0, (0.6*distanceFalloff));
      fragColor = vec4(newCol,  alpha);
-     fragColor.rgb = fragColor.rgb * fragColor.a;
+     fragColor.rgb = fragColor.rgb * fragColor.a*u_opacity;
      
    }  
  
